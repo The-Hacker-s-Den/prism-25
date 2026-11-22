@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Game structure
+
+- Keep PRISM-25 case content and cipher/scoring rules in `src/lib/prism-game.ts`, with rule tests beside the existing tests, so the route stays focused on play and presentation.
