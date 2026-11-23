@@ -191,6 +191,130 @@ export const CASE_FILES: CaseFile[] = [
   },
 ];
 
+export type ManualCipherId = "caesar" | "atbash" | "xor" | "vigenere";
+export type ManualSectionId = "protocol" | "ciphers" | "lore" | "credits";
+
+export const CIPHER_MANUAL = [
+  {
+    id: "caesar",
+    title: "Caesar cipher",
+    label: "SHIFT SUBSTITUTION",
+    summary: "Each letter moves the same number of places around the alphabet.",
+    method: "To decrypt, move each letter backward by the stated shift. Wrap Z back to A.",
+    formula: "D(x) = (x − k) mod 26",
+    key: "Case 001 uses a shift of 3.",
+    example: "V moves back three places to S.",
+  },
+  {
+    id: "atbash",
+    title: "Atbash",
+    label: "REVERSE ALPHABET",
+    summary: "Each letter is replaced by its mirror across the alphabet.",
+    method: "A maps to Z, B to Y, and the same reversed mapping decrypts the text.",
+    formula: "A ↔ Z · B ↔ Y · C ↔ X",
+    key: "Numbers and spaces stay as written.",
+    example: "XSVNRHG decodes to CHEMIST.",
+  },
+  {
+    id: "xor",
+    title: "Single-character XOR",
+    label: "BYTE OPERATION",
+    summary: "Each hexadecimal byte is combined with the same one-character key.",
+    method: "Convert each hex byte, XOR it with the key byte, then read the ASCII character.",
+    formula: "0x18 XOR 0x4B = 0x53",
+    key: "The key is K: decimal 75, hexadecimal 4B.",
+    example: "0x53 is the ASCII letter S.",
+  },
+  {
+    id: "vigenere",
+    title: "Vigenère cipher",
+    label: "REPEATING KEYWORD",
+    summary: "A repeated keyword gives each letter its own alphabet shift.",
+    method: "Repeat VESPER across letters only, then subtract each key-letter value to decrypt.",
+    formula: "P(x) = (C(x) − K(x)) mod 26",
+    key: "The keyword repeats across the message; spaces do not consume key letters.",
+    example: "Q minus V wraps around the alphabet to V.",
+  },
+] as const;
+
+export const INVESTIGATION_PROTOCOL = {
+  steps: [
+    { title: "Briefing", detail: "Read the case file and enter the scene." },
+    { title: "Examination", detail: "Inspect every available item; discoveries stay in your notebook." },
+    { title: "Cipher analysis", detail: "Use the evidence and cipher key to decode the locked message." },
+    { title: "Resolution", detail: "Close the case, preserve any important clue, and follow the next lead." },
+  ],
+  scoring: "Each case starts at 100 points. Wrong answers cost 10 points; requested case hints cost 20.",
+  persistentClue: "The supplier code 8492 can be saved in Case 002 and used at the clinic computer in Case 004.",
+  rank: "Your final investigator rank is based on the total score across all four cases.",
+} as const;
+
+export const CASE_LORE = [
+  {
+    title: "The inspiration",
+    detail: "PRISM-25 takes inspiration from the C-drama The Truth Within.",
+  },
+  {
+    title: "PRISM-25",
+    detail: "A fictional psychedelic at the center of the case files, linked to light-triggered hallucinations, guilt, shame, and detachment.",
+  },
+  {
+    title: "The chemist",
+    detail: "A university professor's private research into treatment-resistant depression turns into an attempt to bring back someone he lost.",
+  },
+  {
+    title: "Dr. Vance",
+    detail: "A psychiatrist who once treated patients ethically lets personal grief draw him into illegal trials.",
+  },
+  {
+    title: "The Lumos",
+    detail: "A supplier inside The Hollow presents PRISM-25 as help to vulnerable members of the online group.",
+  },
+] as const;
+
+export const CASE_CREDITS = ["Hania Nauman", "Rameen Arjmand", "Shaheer"] as const;
+
+export const FINAL_EPILOGUE = [
+  {
+    chapter: "THREE WEEKS LATER",
+    title: "The headlines read the same everywhere.",
+    paragraphs: [
+      "ST JUDE CLINIC SEALED. DR. VANCE CHARGED.",
+      "Dr. Julian Vance, The Lumos, and every supplier tied to PRISM-25 now wait for trial. The victims' families finally have names for what happened to them.",
+    ],
+  },
+  {
+    chapter: "THE HOLLOW",
+    title: "The group chat goes quiet.",
+    paragraphs: [
+      "The Hollow has been taken offline. Its members have been contacted by counselors—this time, with real help.",
+    ],
+  },
+  {
+    chapter: "ONE FILE NEVER MADE IT INTO EVIDENCE",
+    title: "Every trail pointed to Vesper.",
+    paragraphs: [
+      "The pharmacy batch tag. The notebook. The override code. No name, no face—only a seat on an international flight that took off twenty minutes before the raid.",
+      "You close your notebook. Somewhere, a chemist is still working.",
+    ],
+    quote: "Every grief demands a price. Every formula hides a sin.",
+  },
+] as const;
+
+export function shiftCaesar(value: string, shift: number, direction: "encrypt" | "decrypt" = "encrypt") {
+  const normalized = ((Math.trunc(shift) % 26) + 26) % 26;
+  const amount = direction === "encrypt" ? normalized : -normalized;
+
+  return Array.from(value, (character) => {
+    const code = character.charCodeAt(0);
+    const isUpper = code >= 65 && code <= 90;
+    const isLower = code >= 97 && code <= 122;
+    if (!isUpper && !isLower) return character;
+    const base = isUpper ? 65 : 97;
+    return String.fromCharCode(((code - base + amount + 26) % 26) + base);
+  }).join("");
+}
+
 const CASE_SOLUTIONS = [
   "SPIDER IN THE DARK",
   "CHEMIST ALIAS VESPER CODE 8492",

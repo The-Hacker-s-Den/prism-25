@@ -1,0 +1,5 @@
+- [ ] Review the newest C++ source and carry its confirmed story and game changes into PRISM-25.
+- [ ] Add the main menu, including direct access to lore and credits.
+- [ ] Add the always-available Field Manual with play instructions, cipher guides, and a Caesar helper.
+- [ ] Add the complete animated epilogue and update final scoring/rank presentation.
+- [ ] Add focused rule tests, verify the game in the browser, and check preview diagnostics.

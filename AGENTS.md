@@ -32,3 +32,4 @@ use the editor.
 ## Game structure
 
 - Keep PRISM-25 case content and cipher/scoring rules in `src/lib/prism-game.ts`, with rule tests beside the existing tests, so the route stays focused on play and presentation.
+- Keep the reusable Field Manual in a focused game component so the main route can stay centered on play and screen transitions.
