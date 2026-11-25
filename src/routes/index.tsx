@@ -1,14 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Check,
   CheckCircle2,
   ChevronRight,
   CircleDot,
   FileSearch,
   Fingerprint,
+  Home,
   KeyRound,
   LockKeyhole,
   NotebookPen,
@@ -17,6 +19,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,18 +28,22 @@ import prismFinale from "@/assets/prism-finale.png";
 import prismMoth from "@/assets/prism-moth.png";
 import prismWarehouse from "@/assets/prism-warehouse.png";
 import prismWeb from "@/assets/prism-web.png";
+import { FieldManualDrawer } from "@/components/game/FieldManualDrawer";
 import {
   CASE_FILES,
+  CASE_LORE,
+  FINAL_EPILOGUE,
   getCaseScore,
   getInvestigatorRank,
   isAnswerCorrect,
   normalizeAnswer,
+  type ManualSectionId,
 } from "@/lib/prism-game";
 import type { CaseFile } from "@/lib/prism-game";
 
 const CASE_ART = [prismWeb, prismWarehouse, prismMoth, prismFinale] as const;
 
-type Screen = "briefing" | "investigation" | "case-complete" | "review" | "report";
+type Screen = "menu" | "briefing" | "investigation" | "case-complete" | "review" | "epilogue" | "report";
 
 type CaseProgress = {
   explored: string[];
@@ -87,7 +94,7 @@ export const Route = createFileRoute("/")({
 });
 
 function PrismGame() {
-  const [screen, setScreen] = useState<Screen>("briefing");
+  const [screen, setScreen] = useState<Screen>("menu");
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState<CaseProgress[]>(freshProgress);
   const [selectedFinding, setSelectedFinding] = useState<string | null>(null);
@@ -95,6 +102,26 @@ function PrismGame() {
   const [feedback, setFeedback] = useState("");
   const [feedbackTone, setFeedbackTone] = useState<"error" | "success" | "">("");
   const [visibleHint, setVisibleHint] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualSection, setManualSection] = useState<ManualSectionId>("protocol");
+  const [investigationStarted, setInvestigationStarted] = useState(false);
+  const [epilogueStep, setEpilogueStep] = useState(0);
+
+  useEffect(() => {
+    const handleManualShortcut = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isTyping = activeElement instanceof HTMLElement &&
+        (activeElement.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName));
+      if (isTyping || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        setManualOpen((open) => !open);
+      }
+    };
+
+    window.addEventListener("keydown", handleManualShortcut);
+    return () => window.removeEventListener("keydown", handleManualShortcut);
+  }, []);
 
   const activeCase = CASE_FILES.at(activeIndex);
   const activeArt = CASE_ART.at(activeIndex);
@@ -120,6 +147,11 @@ function PrismGame() {
     setFeedbackTone("");
     setVisibleHint("");
     setSelectedFinding(null);
+  };
+
+  const openManual = (section: ManualSectionId = "protocol") => {
+    setManualSection(section);
+    setManualOpen(true);
   };
 
   const updateActiveProgress = (update: (current: CaseProgress) => CaseProgress) => {
@@ -197,7 +229,8 @@ function PrismGame() {
 
   const continueCase = () => {
     if (activeIndex === CASE_FILES.length - 1) {
-      setScreen("report");
+      setEpilogueStep(0);
+      setScreen("epilogue");
       return;
     }
     const nextIndex = activeIndex + 1;
@@ -207,6 +240,7 @@ function PrismGame() {
   };
 
   const resumeOpenCase = () => {
+    setInvestigationStarted(true);
     if (nextOpenIndex < 0) {
       setScreen("report");
       return;
@@ -219,8 +253,17 @@ function PrismGame() {
   const startNewInvestigation = () => {
     setProgress(freshProgress());
     setActiveIndex(0);
+    setInvestigationStarted(true);
     setScreen("briefing");
     resetTransientState();
+  };
+
+  const continueEpilogue = () => {
+    if (epilogueStep < FINAL_EPILOGUE.length - 1) {
+      setEpilogueStep((current) => current + 1);
+      return;
+    }
+    setScreen("report");
   };
 
   const caseProgressLabel = isCaseComplete(activeProgress, activeIndex)
@@ -228,6 +271,102 @@ function PrismGame() {
     : screen === "briefing"
       ? activeCase.status
       : "ACTIVE INVESTIGATION";
+
+  if (screen === "menu") {
+    return (
+      <div className="prism-shell main-menu-shell">
+        <header className="menu-topbar">
+          <div className="prism-brand-lockup">
+            <div className="prism-brand-mark" aria-hidden="true"><Fingerprint /></div>
+            <div>
+              <div className="prism-brand-name">PRISM<span>25</span></div>
+              <div className="prism-brand-caption">MAJOR CASES UNIT</div>
+            </div>
+          </div>
+          <div className="menu-topbar-status"><span className="status-light" /> CASE ARCHIVE · 04 FILES</div>
+          <div className="menu-topbar-actions">
+            <Button type="button" variant="ghost" className="menu-topbar-button" onClick={() => openManual("lore")} title="Read case lore" aria-label="Read case lore">
+              <NotebookPen /><span>Lore</span>
+            </Button>
+            <Button type="button" variant="ghost" className="menu-topbar-button" onClick={() => openManual("protocol")} title="Open the field manual" aria-label="Open the field manual">
+              <BookOpen /><span>Field manual</span>
+            </Button>
+            <Button type="button" variant="ghost" className="menu-topbar-button" onClick={() => openManual("credits")} title="View contributors" aria-label="View contributors">
+              <Users /><span>Credits</span>
+            </Button>
+          </div>
+        </header>
+
+        <main className="main-menu-main">
+          <section className="menu-hero" aria-label="PRISM-25 case archive">
+            <img className="menu-hero-image" src={prismWeb} alt="A dim bedroom at the beginning of the PRISM-25 investigation" />
+            <div className="menu-hero-shade" aria-hidden="true" />
+            <div className="menu-hero-content">
+              <p className="menu-hero-kicker"><span className="status-light" /> CLASSIFIED CASE ARCHIVE</p>
+              <h1>PRISM<span>—25</span></h1>
+              <p className="menu-hero-subtitle">Four cases. One chemist still at large.</p>
+              <p className="menu-hero-copy">The evidence is waiting. Every secret leaves a trace.</p>
+              <div className="menu-actions">
+                <Button type="button" onClick={startNewInvestigation} className="case-primary-button menu-start-button">
+                  Begin investigation <ArrowRight />
+                </Button>
+                {investigationStarted && (
+                  <Button type="button" variant="outline" onClick={resumeOpenCase} className="case-secondary-button">
+                    Resume case <ChevronRight />
+                  </Button>
+                )}
+              </div>
+              <div className="menu-file-stamp"><span>ACTIVE DOSSIER</span><strong>001—004</strong><i>THE HOLLOW / PRISM-25</i></div>
+            </div>
+            <div className="menu-hero-seal" aria-hidden="true"><Fingerprint /><span>CONFIDENTIAL<br />INVESTIGATION</span></div>
+          </section>
+
+          <section className="menu-lore-section" id="menu-lore" aria-labelledby="menu-lore-title">
+            <div className="menu-lore-heading">
+              <div>
+                <p className="micro-label">CASE BACKGROUND</p>
+                <h2 id="menu-lore-title">The truth within</h2>
+              </div>
+              <p>Inspired by the C-drama <em>The Truth Within.</em></p>
+            </div>
+            <div className="menu-lore-grid">
+              {CASE_LORE.slice(1).map((entry, index) => (
+                <article className="menu-lore-entry" key={entry.title}>
+                  <span className="menu-lore-index">0{index + 1}</span>
+                  <h3>{entry.title}</h3>
+                  <p>{entry.detail}</p>
+                </article>
+              ))}
+            </div>
+            <Button type="button" variant="ghost" className="menu-lore-link" onClick={() => openManual("lore")}>
+              Read the full case background <ArrowRight />
+            </Button>
+          </section>
+
+          <section className="menu-case-strip" aria-label="The four case files">
+            {CASE_FILES.map((caseFile, index) => (
+              <article className="menu-case-card" key={caseFile.number}>
+                <img src={CASE_ART[index]} alt="" />
+                <div><span>FILE {caseFile.number}</span><strong>{caseFile.title}</strong></div>
+              </article>
+            ))}
+          </section>
+        </main>
+
+        <footer className="prism-footer">
+          <span>PRISM-25 <i>·</i> MAJOR CASES UNIT</span>
+          <span>CONFIDENTIAL INVESTIGATION RECORD</span>
+          <span>THE HOLLOW</span>
+        </footer>
+        <FieldManualDrawer
+          open={manualOpen}
+          section={manualSection}
+          onOpenChange={setManualOpen}
+          onSectionChange={setManualSection}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="prism-shell">
@@ -247,13 +386,22 @@ function PrismGame() {
           <span className="status-divider" />
           <span>{completedCount} / 4 CLOSED</span>
         </div>
-        <div className="prism-score-summary">
-          <span>FIELD SCORE</span>
-          <strong>{totalScore}<span> / 400</span></strong>
+        <div className="topbar-tools">
+          <div className="prism-score-summary">
+            <span>FIELD SCORE</span>
+            <strong>{totalScore}<span> / 400</span></strong>
+          </div>
+          <Button type="button" variant="ghost" className="topbar-tool-button" onClick={() => openManual("protocol")} title="Open the field manual (H)" aria-label="Open the field manual">
+            <BookOpen /><span>Manual</span>
+          </Button>
+          <Button type="button" variant="ghost" className="topbar-tool-button" onClick={() => setScreen("menu")} title="Return to the main menu" aria-label="Return to the main menu">
+            <Home /><span>Menu</span>
+          </Button>
         </div>
       </header>
 
-      <div className="prism-layout">
+      <div className={`prism-layout${screen === "epilogue" ? " is-epilogue" : ""}`}>
+        {screen !== "epilogue" && (
         <aside className="case-rail" aria-label="Case files">
           <div className="rail-heading">
             <span className="micro-label">INVESTIGATION</span>
@@ -299,8 +447,9 @@ function PrismGame() {
             </div>
           </div>
         </aside>
+        )}
 
-        <main className="case-main">
+        <main className={`case-main${screen === "epilogue" ? " is-epilogue" : ""}`}>
           {screen === "report" ? (
             <FinalReport
               progress={progress}
@@ -308,6 +457,8 @@ function PrismGame() {
               onRestart={startNewInvestigation}
               onReview={(index) => openCase(index)}
             />
+          ) : screen === "epilogue" ? (
+            <FinalEpilogue step={epilogueStep} onContinue={continueEpilogue} />
           ) : (
             <>
               <section className="case-stage" aria-label={`${activeCase.title} scene`}>
@@ -502,7 +653,7 @@ function PrismGame() {
           )}
         </main>
 
-        {screen !== "report" && (
+        {screen !== "report" && screen !== "epilogue" && (
           <aside className="notebook-rail" aria-label="Case notebook">
             <div className="notebook-heading">
               <div className="notebook-title-icon"><NotebookPen /></div>
@@ -570,7 +721,42 @@ function PrismGame() {
         <span>CONFIDENTIAL INVESTIGATION RECORD</span>
         <span>{activeCase.location.toUpperCase()}</span>
       </footer>
+      <FieldManualDrawer
+        open={manualOpen}
+        section={manualSection}
+        onOpenChange={setManualOpen}
+        onSectionChange={setManualSection}
+      />
     </div>
+  );
+}
+
+function FinalEpilogue({ step, onContinue }: { step: number; onContinue: () => void }) {
+  const story = FINAL_EPILOGUE.at(step);
+  if (!story) return null;
+
+  return (
+    <section className="epilogue-stage" aria-live="polite" aria-label="Case epilogue">
+      <img className="epilogue-image" src={prismFinale} alt="The St Jude clinic after the raid" />
+      <div className="epilogue-shade" aria-hidden="true" />
+      <div className="epilogue-copy" key={story.chapter}>
+        <p className="epilogue-kicker"><span>CASE CLOSED</span><i />{story.chapter}</p>
+        <h1>{story.title}</h1>
+        {story.paragraphs.map((paragraph) => <p className="epilogue-paragraph" key={paragraph}>{paragraph}</p>)}
+        {"quote" in story && <blockquote>{story.quote}</blockquote>}
+        <div className="epilogue-controls">
+          <div className="epilogue-progress" aria-label={`Story part ${step + 1} of ${FINAL_EPILOGUE.length}`}>
+            {FINAL_EPILOGUE.map((chapter, index) => (
+              <span className={index <= step ? "is-active" : ""} key={chapter.chapter} />
+            ))}
+          </div>
+          <Button type="button" onClick={onContinue} className="case-primary-button">
+            {step === FINAL_EPILOGUE.length - 1 ? "Open final report" : "Continue the story"} <ArrowRight />
+          </Button>
+        </div>
+      </div>
+      <div className="epilogue-file-mark" aria-hidden="true">PRISM—25 <span>·</span> 004</div>
+    </section>
   );
 }
 
