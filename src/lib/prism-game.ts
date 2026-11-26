@@ -230,9 +230,9 @@ export const CIPHER_MANUAL = [
     title: "Vigenère cipher",
     label: "REPEATING KEYWORD",
     summary: "A repeated keyword gives each letter its own alphabet shift.",
-    method: "Repeat VESPER across letters only, then subtract each key-letter value to decrypt.",
+    method: "Repeat VESPER across letters only; spaces do not consume key letters. Subtract each key-letter value to decrypt.",
     formula: "P(x) = (C(x) − K(x)) mod 26",
-    key: "The keyword repeats across the message; spaces do not consume key letters.",
+    key: "Repeat the keyword VESPER across the message; spaces do not consume key letters.",
     example: "Q minus V wraps around the alphabet to V.",
   },
 ] as const;
