@@ -637,7 +637,7 @@ function PrismGame() {
                       <div className="resolution-footer">
                         <span><ShieldCheck /> CASE SCORE <strong>{activeProgress.score} / 100</strong></span>
                         <Button type="button" onClick={continueCase} className="case-primary-button">
-                          {activeIndex === CASE_FILES.length - 1 ? "Read final report" : "Proceed to next case"} <ArrowRight />
+                          {activeIndex === CASE_FILES.length - 1 ? "Read the epilogue" : "Proceed to next case"} <ArrowRight />
                         </Button>
                       </div>
                     )}

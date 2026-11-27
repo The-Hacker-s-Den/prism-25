@@ -3,3 +3,4 @@
 - [ ] Add the always-available Field Manual with play instructions, cipher guides, and a Caesar helper.
 - [ ] Add the complete animated epilogue and update final scoring/rank presentation.
 - [ ] Add focused rule tests, verify the game in the browser, and check preview diagnostics.
+- [ ] Add a Gemini-powered game guide for gameplay, mysteries, and cipher questions.
